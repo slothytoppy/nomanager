@@ -1,28 +1,39 @@
 #include <stdio.h>
 #include <raylib.h>
-
+#define NOMAKE_IMPLEMENTATION 
+#include "nomake.h"
 int main(){
+run("nomake");
+SetTraceLogLevel(LOG_WARNING); 
 InitWindow(800, 450, "raylib [core] example - basic window");
 SetWindowTitle("NoManager");                     // Set title for window (only PLATFORM_DESKTOP and PLATFORM_WEB)
 SetWindowState(FLAG_WINDOW_RESIZABLE);
+Image image=LoadImage("/home/slothy/Downloads/0175-034.png");
+ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8); 
+SetWindowIcon(image);
 while(!WindowShouldClose()){
 BeginDrawing();
 ClearBackground(RAYWHITE);
-int x=GetScreenWidth();                                   /* Get current screen width */
-int y=GetScreenHeight();                                  /* Get current screen height */
-int j=MeasureText("Congrats! You created your first window!", 20);                                      /* Measure string width for default font */
+int screenCenterX = GetScreenWidth() / 2;
+int screenCenterY = GetScreenHeight() / 2;
+const char *text="Congrats! You created your first window!";
+int fontSize = 20;
+int textWidth = MeasureText(text, fontSize);
+int textStartX = screenCenterX - textWidth / 2;
+int textStartY = screenCenterY - fontSize / 2;
 if(IsKeyPressed(KEY_Q)){
-	DrawText("You pressed KEY_Q Exiting...", x/2, y/2, 20, LIGHTGRAY);
+	DrawText("You pressed KEY_Q Exiting...", textStartX, textStartY, 20, LIGHTGRAY);
 	EndDrawing();
 	WindowShouldClose();
 }
 if(IsWindowResized()){
-printf("%d|%d|%d\n", x, y/2, j);
+printf("%d|%d\n", textStartX, textStartY);
 }
-DrawText("Congrats! You created your first window!", x/2, y/4, 20, LIGHTGRAY);
+DrawText(text, textStartX, textStartY, 20, LIGHTGRAY);
 EndDrawing();
 }
 CloseWindow();
+UnloadImage(image);
 return 0;
 }
 

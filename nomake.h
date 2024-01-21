@@ -35,10 +35,11 @@ unsigned int renameold(char* file);
 #include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
+// #include <pthread.h> // was for attempting to multithread compilation but i failed
 
 #define print_source(){										 \
 	char* file=__FILE__;										 \
-	LOG_INFO(NOM_INFO, "SOURCE %s", file);   \
+	NOM_LOG(NOM_INFO, "SOURCE %s", file);   \
 }
 
 typedef const char* Cstr;
@@ -50,7 +51,7 @@ enum log_level{
 	NOM_DEBUG,
 };
 
-void LOG_INFO(enum log_level level, const char* fmt, ...){
+void NOM_LOG(enum log_level level, const char* fmt, ...){
 #ifdef DEBUG 
 	return;
 #endif
@@ -95,12 +96,12 @@ char* upcwd(char* str1, char* str2){
 		strcat(str2, buff);
 		free(cbuff);
 		free(buff);
-		LOG_INFO(NOM_INFO, "%s", str2);
+		NOM_LOG(NOM_INFO, "%s", str2);
 		return str2;
 	}
 	strcat(cwd, "/");
 	strcat(cwd, str1);
-	LOG_INFO(NOM_INFO, "%s", str1);
+	NOM_LOG(NOM_INFO, "%s", str1);
 	return str1;
 }
 
@@ -111,11 +112,11 @@ unsigned int exec(char* args[]){
 	int child_status;
 	if(id==0){
 		if(!execvp(args[0], args)){
-			LOG_INFO(NOM_WARN, "%s", errormsg);
+			NOM_LOG(NOM_WARN, "%s", errormsg);
 		}
 	} 
 	if(id<0){
-		LOG_INFO(NOM_WARN, "forking failed\n");
+		NOM_LOG(NOM_WARN, "forking failed\n");
 		return 0;
 	}
 	wait(&child_status);
@@ -128,11 +129,11 @@ unsigned int run_args(char* pathname[]){
 	int child_status;
 	if(id==0){
 		if(!execv(pathname[0], pathname)){
-			LOG_INFO(NOM_WARN, "%s", "exec failed, invalid path or filename");
+			NOM_LOG(NOM_WARN, "%s", "exec failed, invalid path or filename");
 		}
 	} 
 	if(id<0){
-		LOG_INFO(NOM_WARN, "forking failed\n");
+		NOM_LOG(NOM_WARN, "forking failed\n");
 		return 0;
 	}
 	wait(&child_status);
@@ -160,7 +161,7 @@ unsigned int len(Cstr str1){
 unsigned int ends_with(char* str1, char with){
 	if(str1==NULL || with==0) return 0;
 	unsigned int sz=len(str1);
-	LOG_INFO(NOM_INFO, "NEEDLE IS:%c", with);
+	NOM_LOG(NOM_INFO, "NEEDLE IS:%c", with);
 	if(str1[sz]==with){
 		return 1;
 	}
@@ -198,7 +199,7 @@ unsigned int IS_PATH_DIR(char* path){
 	struct stat fi;
 	if(stat(path, &fi)<0){
 		if(errno==ENOENT) 
-			LOG_INFO(NOM_WARN, "could not open %s", path);
+			NOM_LOG(NOM_WARN, "could not open %s", path);
 		perror("errno");
 		return 0;
 	}
@@ -213,14 +214,14 @@ unsigned int IS_PATH_FILE(char* path){
 	struct stat fi;
 	if(stat(path, &fi)<0){
 		if(errno==ENOENT){
-			LOG_INFO(NOM_WARN, "%s doesnt exist", path);
+			NOM_LOG(NOM_WARN, "%s doesnt exist", path);
 		}
 		return 0;
 	} 
 	if(!S_ISREG(fi.st_mode)){
 		return 0;
 	}
-	LOG_INFO(NOM_DEBUG, "IS FILE %s", path); 
+	NOM_LOG(NOM_DEBUG, "IS FILE %s", path); 
 	return 1;
 }
 
@@ -238,12 +239,12 @@ unsigned int MKFILE(char* file){
 	struct stat fi;
 	if(stat(file, &fi)!=0){
 		if(creat(file, 0644)<0){
-			LOG_INFO(NOM_WARN, "mkfile error:%s %d", file, errno);
+			NOM_LOG(NOM_WARN, "mkfile error:%s %d", file, errno);
 			return 0;
 		}
 	}
 	if(IS_PATH_EXIST(file)){
-		LOG_INFO(NOM_DEBUG, "CREATED %s", file);
+		NOM_LOG(NOM_DEBUG, "CREATED %s", file);
 		return 1;
 	}
 	return 0;
@@ -254,7 +255,7 @@ unsigned int RMFILE(char* file){
 	struct stat fi;
 	if(stat(file, &fi)==0){
 		if(unlink(file)<0){
-			LOG_INFO(NOM_WARN, "rmfile error:%s %d", file, errno);
+			NOM_LOG(NOM_WARN, "rmfile error:%s %d", file, errno);
 			return 0;
 		}
 	}
@@ -266,7 +267,7 @@ unsigned int RMFILE(char* file){
 
 unsigned int CLEAN(char* directory, char* extension){
 	if(directory==NULL || extension==NULL){
-		LOG_INFO(NOM_WARN, "directory or compiler was null");
+		NOM_LOG(NOM_WARN, "directory or compiler was null");
 		return 0;
 	}
 	struct dirent *dirent;
@@ -296,7 +297,7 @@ unsigned int MKDIR(char* path){
 	if(stat(path, &fi)!=0){
 		mode_t perms = S_IRWXU | S_IRWXG | S_IRWXO;
 		if(mkdir(path, perms)<0){ 
-			LOG_INFO(NOM_WARN, "mkdir error:%s %d", path, errno);
+			NOM_LOG(NOM_WARN, "mkdir error:%s %d", path, errno);
 			return 0;
 		}
 	}
@@ -311,7 +312,7 @@ unsigned int RMDIR(char *path){
 	struct stat fi;
 	if(stat(path, &fi)==0 && IS_PATH_DIR(path)){
 		if(rmdir(path)<0){
-			LOG_INFO(NOM_WARN, "rmdir error:%s %d", path, errno);
+			NOM_LOG(NOM_WARN, "rmdir error:%s %d", path, errno);
 			return 0;
 		}
 	}
@@ -325,30 +326,31 @@ unsigned int is_path1_modified_after_path2(Cstr source_path, Cstr binary_path){
 	if(!source_path || !binary_path) return 0;
 	struct stat fi;
 	if(stat(source_path, &fi)<0){
-		LOG_INFO(NOM_WARN, "%s doesnt exist", source_path);
+		NOM_LOG(NOM_WARN, "%s doesnt exist", source_path);
+		return 0;
 	}
 	unsigned int source_time=fi.st_mtime;
 	if(stat(binary_path, &fi)<0){
-		LOG_INFO(NOM_WARN, "%s doesnt exist", binary_path);
+		NOM_LOG(NOM_WARN, "%s doesnt exist", binary_path);
+		return 0;
 	}
 	unsigned int binary_time=fi.st_mtime;
 	return source_time>binary_time;
 }
 
 unsigned int print_exec(char* args[]){
-	LOG_INFO(NOM_INFO, "executed:%s source:%s binary:%s", args[0], args[1], args[3]);
+	NOM_LOG(NOM_INFO, "executed:%s source:%s binary:%s", args[0], args[1], args[3]);
 	return 1;
 }
 
-
 unsigned int compile_file(char* compiler, char* flags[], char* file, char* destination, ...){
 	if(file==NULL || destination==NULL || compiler==NULL){
-		LOG_INFO(NOM_WARN, "origin destination, compiler, or destination was null");
+		NOM_LOG(NOM_WARN, "origin destination, compiler, or destination was null");
 		return 0;
 	}
 	struct stat fi;
 	if(stat(file, &fi)!=0){
-		LOG_INFO(NOM_PANIC, "file: %s doesnt exist", file);
+		NOM_LOG(NOM_PANIC, "file: %s doesnt exist", file);
 		exit(1);
 	}
 	if(flags==NULL){
@@ -371,36 +373,36 @@ unsigned int compile_file(char* compiler, char* flags[], char* file, char* desti
 		printf("[INFO] command: ");
 		for(i=0; i<total_size; i++) printf("%s ", command[i]);
 		printf("\n");
-		LOG_INFO(NOM_DEBUG, "flagc:%d", cl_args+flagc);
+		NOM_LOG(NOM_DEBUG, "flagc:%d", cl_args+flagc);
 		if(command[2]==NULL || command[3]==NULL) exit(1);
 		command[total_size+1]=NULL;
 		exec(command);
 	}
 	if(!is_path1_modified_after_path2(file, destination)){
-		LOG_INFO(NOM_DEBUG, "COMPILED %s", file);
+		NOM_LOG(NOM_DEBUG, "COMPILED %s", file);
 	} else{
-		LOG_INFO(NOM_DEBUG, "COULDNT COMPILE %s", file);
+		NOM_LOG(NOM_DEBUG, "COULDNT COMPILE %s", file);
 	}
 	return 1;
 }
 
 unsigned int compile_targets(unsigned int sz, char* files[], char* destination, char* compiler, Cstr extension){
 	if(files==NULL || destination==NULL || compiler==NULL || extension==NULL){
-		LOG_INFO(NOM_WARN, "file, destination, compiler, or extension was null");   
+		NOM_LOG(NOM_WARN, "file, destination, compiler, or extension was null");   
 		return 0;
 	}
 	if(strcmp(*files, ".")==0){
-		LOG_INFO(NOM_WARN, "file can not be only a dot");
+		NOM_LOG(NOM_WARN, "file can not be only a dot");
 		return 0;
 	}
 	unsigned int i;
 	struct stat fi;
-	LOG_INFO(NOM_DEBUG, "elems:%d", sz);
+	NOM_LOG(NOM_DEBUG, "elems:%d", sz);
 	for(i=0; i<sz; i++){
 		if(strcmp(destination, ".")==0){
 			if(strcmp(ext(files[i]), extension)==0){
 				char* command[]={compiler, files[i], "-o", base(files[i]), NULL};
-				LOG_INFO(NOM_DEBUG, "FILE:%s BASE:%s", command[1], command[3]);
+				NOM_LOG(NOM_DEBUG, "FILE:%s BASE:%s", command[1], command[3]);
 				if(exec(command)){
 					print_exec(command);
 				}
@@ -412,7 +414,7 @@ unsigned int compile_targets(unsigned int sz, char* files[], char* destination, 
 				strcat(twd, destination); 
 				strcat(twd, "/");
 				strcat(twd, base(files[i]));
-				LOG_INFO(NOM_DEBUG, "TWD %s", twd);
+				NOM_LOG(NOM_DEBUG, "TWD %s", twd);
 				char* command[]={compiler, files[i], "-o", twd, NULL};
 				if(exec(command)){
 					print_exec(command);
@@ -424,7 +426,7 @@ unsigned int compile_targets(unsigned int sz, char* files[], char* destination, 
 		}
 	}
 	if(stat(base(*files), &fi)!=0){
-		LOG_INFO(NOM_WARN, "%s wasnt compiled correctly", base(*files)); 
+		NOM_LOG(NOM_WARN, "%s wasnt compiled correctly", base(*files)); 
 		return 0;
 	}
 	return 1;
@@ -432,7 +434,7 @@ unsigned int compile_targets(unsigned int sz, char* files[], char* destination, 
 
 unsigned int compile(char* compiler, char* flags[], char* origin, char* destination, char* extension, ...){
 	if(origin==NULL || destination==NULL || compiler==NULL || extension==NULL){
-		LOG_INFO(NOM_WARN, "origin destination, compiler or extension was null");  
+		NOM_LOG(NOM_WARN, "origin destination, compiler or extension was null");  
 		return 0;
 	}
 	va_list args;
@@ -449,8 +451,8 @@ unsigned int compile(char* compiler, char* flags[], char* origin, char* destinat
 					char* orig_path=calloc(1, PATH_MAX);
 					char* dest_path=calloc(1, PATH_MAX);
 					if(strcmp(origin, ".")==0 && strcmp(destination, ".")==0){
-						LOG_INFO(NOM_INFO, "D_NAME:%s\n", dirent->d_name);
-						LOG_INFO(NOM_INFO, "BASE D_NAME:%s\n", base(dirent->d_name));
+						NOM_LOG(NOM_INFO, "D_NAME:%s\n", dirent->d_name);
+						NOM_LOG(NOM_INFO, "BASE D_NAME:%s\n", base(dirent->d_name));
 						if(flags==NULL){
 							char* command[]={compiler, "-o", base(dirent->d_name), dirent->d_name, NULL};
 							exec(command);
@@ -465,7 +467,7 @@ unsigned int compile(char* compiler, char* flags[], char* origin, char* destinat
 							if(command==NULL) exit(1);
 							for(i=0; i<flagc; i++) command[4+i]=flags[i];
 							for(i=0; i<4+flagc; i++) printf("command:%s\n", command[i]);
-							LOG_INFO(NOM_DEBUG, "flagc:%d\n", 4+flagc);
+							NOM_LOG(NOM_DEBUG, "flagc:%d\n", 4+flagc);
 							if(command[2]==NULL || command[3]==NULL) exit(1);
 							command[4+flagc+1]=NULL;
 							exec(command);
@@ -492,7 +494,7 @@ unsigned int compile(char* compiler, char* flags[], char* origin, char* destinat
 							if(command==NULL) exit(1);
 							for(i=0; i<flagc; i++) command[4+i]=flags[i];
 							for(i=0; i<4+flagc; i++) printf("command:%s\n", command[i]);
-							LOG_INFO(NOM_DEBUG, "flagc:%d\n", 4+flagc);
+							NOM_LOG(NOM_DEBUG, "flagc:%d\n", 4+flagc);
 							if(command[2]==NULL || command[3]==NULL) exit(1);
 							command[4+flagc+1]=NULL;
 							exec(command);
@@ -523,7 +525,7 @@ unsigned int compile(char* compiler, char* flags[], char* origin, char* destinat
 							if(command==NULL) exit(1);
 							for(i=0; i<flagc; i++) command[4+i]=flags[i];
 							for(i=0; i<4+flagc; i++) printf("command:%s\n", command[i]);
-							LOG_INFO(NOM_DEBUG, "flagc:%d\n", 4+flagc);
+							NOM_LOG(NOM_DEBUG, "flagc:%d\n", 4+flagc);
 							if(command[2]==NULL || command[3]==NULL) exit(1);
 							command[4+flagc+1]=NULL;
 							exec(command);
@@ -554,7 +556,7 @@ unsigned int compile(char* compiler, char* flags[], char* origin, char* destinat
 							if(command==NULL) exit(1);
 							for(i=0; i<flagc; i++) command[4+i]=flags[i];
 							for(i=0; i<4+flagc; i++) printf("command:%s\n", command[i]);
-							LOG_INFO(NOM_DEBUG, "flagc:%d\n", 4+flagc);
+							NOM_LOG(NOM_DEBUG, "flagc:%d\n", 4+flagc);
 							if(command[2]==NULL || command[3]==NULL) exit(1);
 							command[4+flagc+1]=NULL;
 							exec(command);
@@ -576,7 +578,7 @@ unsigned int compile(char* compiler, char* flags[], char* origin, char* destinat
 
 unsigned int compile_dir(char* origin, char* destination, char* compiler, Cstr extension){
 	if(origin==NULL || destination==NULL || compiler==NULL || extension==NULL){
-		LOG_INFO(NOM_WARN, "origin, destination, compiler or extension was null");
+		NOM_LOG(NOM_WARN, "origin, destination, compiler or extension was null");
 		return 0;
 	}
 	struct dirent *dirent;
@@ -594,14 +596,14 @@ unsigned int compile_dir(char* origin, char* destination, char* compiler, Cstr e
 					if(strcmp(origin, destination)==0){
 						char* command[]={compiler, "-o", base(dirent->d_name), dirent->d_name, NULL};
 						exec(command);
-						LOG_INFO(NOM_DEBUG, "COMPILED %s", command[3]);
-						LOG_INFO(NOM_DEBUG, "BINARY %s", command[2]);
-						LOG_INFO(NOM_DEBUG, "finished compiling %s %s", command[3], command[2]);
+						NOM_LOG(NOM_DEBUG, "COMPILED %s", command[3]);
+						NOM_LOG(NOM_DEBUG, "BINARY %s", command[2]);
+						NOM_LOG(NOM_DEBUG, "finished compiling %s %s", command[3], command[2]);
 					}
 					else{
 						if(strcmp(origin, ".")==0){
 							strcat(origin_path, dirent->d_name);	
-							LOG_INFO(NOM_DEBUG, "ORIGIN:dot %s", origin_path);
+							NOM_LOG(NOM_DEBUG, "ORIGIN:dot %s", origin_path);
 						} 
 						if(strcmp(origin, ".")!=0){
 							strcat(origin_path, origin);
@@ -609,7 +611,7 @@ unsigned int compile_dir(char* origin, char* destination, char* compiler, Cstr e
 								strcat(origin_path, "/");
 							}
 							strcat(origin_path, dirent->d_name);
-							LOG_INFO(NOM_DEBUG, "ORIGIN:path %s", origin_path);
+							NOM_LOG(NOM_DEBUG, "ORIGIN:path %s", origin_path);
 						}
 						if(strcmp(destination, ".")==0){
 							strcat(dest_path, origin);
@@ -617,23 +619,23 @@ unsigned int compile_dir(char* origin, char* destination, char* compiler, Cstr e
 								strcat(dest_path, "/");
 							}
 							strcat(dest_path, base(dirent->d_name));
-							LOG_INFO(NOM_DEBUG, "DEST:path %s", dest_path);
+							NOM_LOG(NOM_DEBUG, "DEST:path %s", dest_path);
 						}
 						if(strcmp(destination, ".")!=0){
 							strcat(dest_path, destination);
-							LOG_INFO(NOM_DEBUG, "DEST:dot %s", dest_path);
+							NOM_LOG(NOM_DEBUG, "DEST:dot %s", dest_path);
 							if(!ends_with(dest_path, '/')){
 								strcat(dest_path, "/");
 							}
 							strcat(dest_path, base(dirent->d_name));
-							LOG_INFO(NOM_DEBUG, "DEST:path %s", dest_path);
+							NOM_LOG(NOM_DEBUG, "DEST:path %s", dest_path);
 						}
 						char* command[]={compiler, "-o", dest_path, origin_path, NULL};
 						exec(command);
-						LOG_INFO(NOM_INFO, "COMMAND %s", command[0]);
-						LOG_INFO(NOM_INFO, "BINARY %s", command[2]);
-						LOG_INFO(NOM_INFO, "SOURCE %s", command[3]);
-						LOG_INFO(NOM_INFO, "[source]:%s [binary]:%s", origin_path, upcwd(dest_path, cwdbuff)); 
+						NOM_LOG(NOM_INFO, "COMMAND %s", command[0]);
+						NOM_LOG(NOM_INFO, "BINARY %s", command[2]);
+						NOM_LOG(NOM_INFO, "SOURCE %s", command[3]);
+						NOM_LOG(NOM_INFO, "[source]:%s [binary]:%s", origin_path, upcwd(dest_path, cwdbuff)); 
 					}
 					free(dest_path);
 					free(origin_path);
@@ -651,7 +653,7 @@ unsigned int renameold(char* file){
 	strcat(old, file);
 	strcat(old, ".old");
 	rename(file, old);
-	LOG_INFO(NOM_INFO, "RENAMED TO %s", old);
+	NOM_LOG(NOM_INFO, "RENAMED TO %s", old);
 	return 1;
 }
 
@@ -660,15 +662,17 @@ unsigned int renameold(char* file){
 	if(file==NULL || argc<0)	return 0;																									\
 	char* binary=argv[0];																																\
 	if(is_path1_modified_after_path2(file, binary)){																		\
-		LOG_INFO(NOM_INFO, "FILE %s", file);																							\
+		NOM_LOG(NOM_INFO, "FILE %s", file);																							  \
 		renameold(binary);																																\
 		char* command[]={compiler, "-o", binary, file, NULL};															\
 		if(exec(command)){                                                                \
-			LOG_INFO(NOM_DEBUG, "COMPILING %s", command[3]);                                \
-			LOG_INFO(NOM_DEBUG, "COMPILED %s", command[2]);                                 \
-			LOG_INFO(NOM_DEBUG, "RUNNING %s", binary);																	    \
+			NOM_LOG(NOM_DEBUG, "COMPILING %s", command[3]);                                 \
+			NOM_LOG(NOM_DEBUG, "COMPILED %s", command[2]);                                  \
+			NOM_LOG(NOM_DEBUG, "RUNNING %s", binary);																	      \
 			run(binary);																																	  \
 			exit(0);																																				\
+		} else{																																						\
+		exit(1);																																					\
 		}																																									\
 	}																																										\
 }																																											
