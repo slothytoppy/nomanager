@@ -1,3 +1,6 @@
 [submodule "raylib"]
 	path = raylib
 	url = https://github.com/raysan5/raylib
+[submodule "nomake"]
+	path = nomake
+	url = https://github.com/slothytoppy/nomake
