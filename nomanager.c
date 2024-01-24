@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <raylib.h>
 #define NOMAKE_IMPLEMENTATION 
-#include "nomake.h"
+#include "./nomake/nomake.h"
 int main(){
 run("nomake");
 SetTraceLogLevel(LOG_WARNING); 

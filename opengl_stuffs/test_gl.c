@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <string.h>
 
+// glad and glfw not setup yet
 #include <glad/glad.h>
 
 #include "core.h" // my headers

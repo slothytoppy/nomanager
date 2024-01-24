@@ -1,0 +1,3 @@
+you have to run:
+cmake -G "Unix MakeFiles"
+sudo make install
