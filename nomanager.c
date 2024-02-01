@@ -1,39 +1,56 @@
 #include <stdio.h>
 #include <raylib.h>
-#define NOMAKE_IMPLEMENTATION 
-#include "./nomake/nomake.h"
-int main(){
-run("nomake");
-SetTraceLogLevel(LOG_WARNING); 
-InitWindow(800, 450, "raylib [core] example - basic window");
-SetWindowTitle("NoManager");                     // Set title for window (only PLATFORM_DESKTOP and PLATFORM_WEB)
-SetWindowState(FLAG_WINDOW_RESIZABLE);
-Image image=LoadImage("/home/slothy/Downloads/0175-034.png");
-ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8); 
-SetWindowIcon(image);
-while(!WindowShouldClose()){
-BeginDrawing();
-ClearBackground(RAYWHITE);
+#define NOM_IMPLEMENTATION
+#include "./nom/nom.h"
+
+void CenterText(char* str1){
 int screenCenterX = GetScreenWidth() / 2;
 int screenCenterY = GetScreenHeight() / 2;
-const char *text="Congrats! You created your first window!";
 int fontSize = 20;
-int textWidth = MeasureText(text, fontSize);
+int textWidth = MeasureText(str1, 20);
 int textStartX = screenCenterX - textWidth / 2;
 int textStartY = screenCenterY - fontSize / 2;
+DrawText(str1, textStartX, textStartY, 20, LIGHTGRAY);
+}
+
+void togglefullscreen(void){
+if(IsWindowMaximized()){
+  RestoreWindow();
+  return;
+}
+if(!IsWindowMaximized()){
+  MaximizeWindow();
+  return;
+}
+}
+
+int main(){
+if(IS_PATH_MODIFIED("nom/nom.h", __FILE__) || IS_PATH_MODIFIED("nomake.c", __FILE__)){
+run("nomake");
+}
+SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+InitWindow(800, 450, "NoManager");
+// SetWindowState(FLAG_WINDOW_RESIZABLE);
+while(!WindowShouldClose()){
+
+if(IsKeyPressed(KEY_F) && IsWindowState(FLAG_WINDOW_RESIZABLE)){
+togglefullscreen();
+}
+BeginDrawing();
+ClearBackground(RAYWHITE);
+
+char *text="Congrats! You created your first window!";
 if(IsKeyPressed(KEY_Q)){
-	DrawText("You pressed KEY_Q Exiting...", textStartX, textStartY, 20, LIGHTGRAY);
+	printf("hello\n");
+  CenterText("You pressed KEY_Q Exiting...");
 	EndDrawing();
-	WindowShouldClose();
+  CloseWindow();
+  return 0;
 }
-if(IsWindowResized()){
-printf("%d|%d\n", textStartX, textStartY);
-}
-DrawText(text, textStartX, textStartY, 20, LIGHTGRAY);
+CenterText(text);
 EndDrawing();
 }
 CloseWindow();
-UnloadImage(image);
 return 0;
 }
 

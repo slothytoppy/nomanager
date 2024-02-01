@@ -58,6 +58,7 @@ window_defer:
 	printf("Failed to create GLFW window\n");
 	glfwTerminate();
 	return NULL;
+processExit(window);
 init_glad:
 	if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
 		printf("Failed to initialize GLAD\n");  
@@ -129,7 +130,7 @@ void core_fullscreen(GLFWwindow* window){
 	glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
 	glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
 	glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
-	glfwSetWindowMonitor(window, monitor, 0, 0, core.window.max.x, core.window.max.y, mode->refreshRate);
+	glfwSetWindowMonitor(window, monitor, 0, 0, mode->width-28, mode->height-28, mode->refreshRate);
 return;
 }
 
