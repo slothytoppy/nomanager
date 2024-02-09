@@ -29,7 +29,7 @@ while(!core_window_should_close()){
 	// set_exitkey(GLFW_KEY_Q);
 	if(iskeypressed(window, GLFW_KEY_Q)){
 		core_window_should_close();
-    core_window_terminate();
+    // core_window_terminate();
 		return 0;
   }
 processExit(window);

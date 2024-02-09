@@ -130,7 +130,8 @@ void core_fullscreen(GLFWwindow* window){
 	glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
 	glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
 	glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
-	glfwSetWindowMonitor(window, monitor, 0, 0, mode->width-28, mode->height-28, mode->refreshRate);
+	glfwSetWindowSize(window, mode->width, mode->height);
+  // glfwSetWindowMonitor(window, monitor, 0, 0, mode->width-28, mode->height-28, mode->refreshRate); // use this for going "fullscreen" doesnt show top window bar
 return;
 }
 
